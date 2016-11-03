@@ -26,12 +26,17 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import org.apache.commons.lang.StringUtils;
 import org.sonar.api.utils.DateUtils;
 import org.sonar.api.utils.SonarException;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static org.sonar.api.utils.DateUtils.parseDateQuietly;
 import static org.sonar.api.utils.DateUtils.parseDateTimeQuietly;
 
@@ -277,9 +282,35 @@ public abstract class Request {
   private static long parseLong(String key, String value) {
     try {
       return Long.parseLong(value);
-    } catch (NumberFormatException expection) {
+    } catch (NumberFormatException exception) {
       throw new IllegalArgumentException(String.format("The '%s' parameter cannot be parsed as a long value: %s", key, value));
     }
+  }
+
+  @Beta
+  public <T> Param<T> getParam(String key, BiFunction<Request, String, T> retrieveAndValidate) {
+    if (hasParam(key)) {
+      return Param.present(retrieveAndValidate.apply(this, key));
+    }
+    return Param.absent();
+  }
+
+  @Beta
+  public Param<String> getParam(String key, Consumer<String> validate) {
+    if (hasParam(key)) {
+      String value = this.param(key);
+      validate.accept(value);
+      return Param.present(value);
+    }
+    return Param.absent();
+  }
+
+  @Beta
+  public Param<String> getParam(String key) {
+    if (hasParam(key)) {
+      return Param.present(this.param(key));
+    }
+    return Param.absent();
   }
 
   /**
@@ -303,5 +334,51 @@ public abstract class Request {
     InputStream getInputStream();
 
     String getFileName();
+  }
+
+  @Beta
+  public static final class Param<T> {
+    private static final Param<Object> ABSENT = new Param<>(false, null);
+
+    private final boolean present;
+    @CheckForNull
+    private final T value;
+
+    private Param(boolean present, @Nullable T value) {
+      this.present = present;
+      this.value = value;
+    }
+
+    public boolean isPresent() {
+      return present;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> Param<T> absent() {
+      return (Param<T>) ABSENT;
+    }
+
+    public static <T> Param<T> present(@Nullable T value) {
+      return new Param<>(true, value);
+    }
+
+    /**
+     * @return the value of the parameter
+     *
+     * @throws IllegalStateException if param is not present.
+     */
+    @CheckForNull
+    public T getValue() {
+      checkState(present, "Param has no value. Use isPresent() before calling getValue()");
+      return value;
+    }
+
+    @CheckForNull
+    public T or(Supplier<T> defaultValueSupplier) {
+      if (present) {
+        return value;
+      }
+      return defaultValueSupplier.get();
+    }
   }
 }
