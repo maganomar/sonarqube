@@ -36,7 +36,6 @@ module.exports = {
     'dashboard': './src/main/js/apps/dashboard/app.js',
     'global-permissions': './src/main/js/apps/permissions/global/app.js',
     'groups': './src/main/js/apps/groups/app.js',
-    'issues': './src/main/js/apps/issues/app.js',
     'maintenance': './src/main/js/apps/maintenance/app.js',
     'markdown': './src/main/js/apps/markdown/app.js',
     'metrics': './src/main/js/apps/metrics/app.js',

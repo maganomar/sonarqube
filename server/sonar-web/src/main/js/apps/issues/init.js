@@ -33,15 +33,13 @@ import FacetsView from './facets-view';
 import FiltersView from './filters-view';
 
 const App = new Marionette.Application();
-const init = function () {
-  const options = window.sonarqube;
-
+const init = function (el) {
   this.state = new State();
   this.list = new Issues();
   this.facets = new Facets();
   this.filters = new Filters();
 
-  this.layout = new Layout({ app: this, el: options.el });
+  this.layout = new Layout({ app: this, el });
   this.layout.render();
   $('#footer').addClass('search-navigator-footer');
 
@@ -79,9 +77,11 @@ const init = function () {
   });
 };
 
-App.on('start', function () {
-  init.call(App);
+App.on('start', function (el) {
+  init.call(App, el);
 });
 
-window.sonarqube.appStarted.then(options => App.start(options));
+export default function (el) {
+  App.start(el);
+}
 

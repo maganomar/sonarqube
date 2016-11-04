@@ -25,6 +25,7 @@ import { Provider } from 'react-redux';
 import App from './components/App';
 import accountRoutes from '../apps/account/routes';
 import codingRulesRoutes from '../apps/coding-rules/routes';
+import issuesRoutes from '../apps/issues/routes';
 import projectsRoutes from '../apps/projects/routes';
 import qualityGatesRoutes from '../apps/quality-gates/routes';
 import qualityProfilesRoutes from '../apps/quality-profiles/routes';
@@ -47,6 +48,7 @@ window.sonarqube.appStarted.then(options => {
           <Route path="/" component={App}>
             <Route path="account">{accountRoutes}</Route>
             <Route path="coding_rules">{codingRulesRoutes}</Route>
+            <Route path="issues">{issuesRoutes}</Route>
             {projectsRoutes}
             {qualityGatesRoutes}
             {qualityProfilesRoutes}
