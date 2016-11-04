@@ -25,22 +25,20 @@ import ListView from './list-view';
 import ListFooterView from './list-footer-view';
 
 const App = new Marionette.Application();
-const init = function (options) {
+const init = function (el, component) {
   // Layout
-  this.layout = new Layout({
-    el: options.el
-  });
+  this.layout = new Layout({ el });
   this.layout.render();
 
   // Collection
   this.customMeasures = new CustomMeasures({
-    projectId: options.component.id
+    projectId: component.id
   });
 
   // Header View
   this.headerView = new HeaderView({
     collection: this.customMeasures,
-    projectId: options.component.id
+    projectId: component.id
   });
   this.layout.headerRegion.show(this.headerView);
 
@@ -61,8 +59,10 @@ const init = function (options) {
 };
 
 App.on('start', function (options) {
-  init.call(App, options);
+  init.call(App, options.el, options.component);
 });
 
-window.sonarqube.appStarted.then(options => App.start(options));
+export default function (el, component) {
+  App.start({ el, component });
+}
 

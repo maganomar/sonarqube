@@ -28,6 +28,7 @@ import accountRoutes from '../apps/account/routes';
 import codeRoutes from '../apps/code/routes';
 import codingRulesRoutes from '../apps/coding-rules/routes';
 import componentIssuesRoutes from '../apps/component-issues/routes';
+import customMeasuresRoutes from '../apps/custom-measures/routes';
 import issuesRoutes from '../apps/issues/routes';
 import projectsRoutes from '../apps/projects/routes';
 import qualityGatesRoutes from '../apps/quality-gates/routes';
@@ -58,6 +59,7 @@ window.sonarqube.appStarted.then(options => {
             <Route component={ComponentContainer}>
               <Route path="code">{codeRoutes}</Route>
               <Route path="component_issues">{componentIssuesRoutes}</Route>
+              <Route path="custom_measures">{customMeasuresRoutes}</Route>
             </Route>
 
             {projectsRoutes}
