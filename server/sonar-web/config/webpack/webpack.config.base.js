@@ -30,7 +30,6 @@ module.exports = {
 
     'background-tasks': './src/main/js/apps/background-tasks/app.js',
     'code': './src/main/js/apps/code/app.js',
-    'coding-rules': './src/main/js/apps/coding-rules/app.js',
     'component-issues': './src/main/js/apps/component-issues/app.js',
     'component-measures': './src/main/js/apps/component-measures/app.js',
     'custom-measures': './src/main/js/apps/custom-measures/app.js',

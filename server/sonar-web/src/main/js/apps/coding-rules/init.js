@@ -33,49 +33,6 @@ import FacetsView from './facets-view';
 import FiltersView from './filters-view';
 
 const App = new Marionette.Application();
-const init = function () {
-  const options = window.sonarqube;
-
-  this.layout = new Layout({ el: options.el });
-  this.layout.render();
-  $('#footer').addClass('search-navigator-footer');
-
-  this.state = new State();
-  this.list = new Rules();
-  this.facets = new Facets();
-
-  this.controller = new Controller({ app: this });
-
-  this.workspaceListView = new WorkspaceListView({
-    app: this,
-    collection: this.list
-  });
-  this.layout.workspaceListRegion.show(this.workspaceListView);
-  this.workspaceListView.bindScrollEvents();
-
-  this.workspaceHeaderView = new WorkspaceHeaderView({
-    app: this,
-    collection: this.list
-  });
-  this.layout.workspaceHeaderRegion.show(this.workspaceHeaderView);
-
-  this.facetsView = new FacetsView({
-    app: this,
-    collection: this.facets
-  });
-  this.layout.facetsRegion.show(this.facetsView);
-
-  this.filtersView = new FiltersView({
-    app: this
-  });
-  this.layout.filtersRegion.show(this.filtersView);
-
-  key.setScope('list');
-  this.router = new Router({
-    app: this
-  });
-  Backbone.history.start();
-};
 
 const appXHR = $.get(window.baseUrl + '/api/rules/app').done(function (r) {
   App.canWrite = r.canWrite;
@@ -90,10 +47,50 @@ const appXHR = $.get(window.baseUrl + '/api/rules/app').done(function (r) {
   App.statuses = r.statuses;
 });
 
-App.on('start', function (options) {
-  appXHR.done(function () {
-    init.call(App, options);
+App.on('start', function (el) {
+  appXHR.done(() => {
+    this.layout = new Layout({ el });
+    this.layout.render();
+    $('#footer').addClass('search-navigator-footer');
+
+    this.state = new State();
+    this.list = new Rules();
+    this.facets = new Facets();
+
+    this.controller = new Controller({ app: this });
+
+    this.workspaceListView = new WorkspaceListView({
+      app: this,
+      collection: this.list
+    });
+    this.layout.workspaceListRegion.show(this.workspaceListView);
+    this.workspaceListView.bindScrollEvents();
+
+    this.workspaceHeaderView = new WorkspaceHeaderView({
+      app: this,
+      collection: this.list
+    });
+    this.layout.workspaceHeaderRegion.show(this.workspaceHeaderView);
+
+    this.facetsView = new FacetsView({
+      app: this,
+      collection: this.facets
+    });
+    this.layout.facetsRegion.show(this.facetsView);
+
+    this.filtersView = new FiltersView({
+      app: this
+    });
+    this.layout.filtersRegion.show(this.filtersView);
+
+    key.setScope('list');
+    this.router = new Router({
+      app: this
+    });
+    Backbone.history.start();
   });
 });
 
-window.sonarqube.appStarted.then(options => App.start(options));
+export default function (el) {
+  App.start(el);
+}
