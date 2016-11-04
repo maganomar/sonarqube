@@ -30,22 +30,20 @@ module.exports = {
 
     'background-tasks': './src/main/js/apps/background-tasks/app.js',
     'component-measures': './src/main/js/apps/component-measures/app.js',
-
     'global-permissions': './src/main/js/apps/permissions/global/app.js',
-    'groups': './src/main/js/apps/groups/app.js',
+    'project-permissions': './src/main/js/apps/permissions/project/app.js',
+
     'maintenance': './src/main/js/apps/maintenance/app.js',
     'markdown': './src/main/js/apps/markdown/app.js',
     'metrics': './src/main/js/apps/metrics/app.js',
     'overview': './src/main/js/apps/overview/app.js',
     'permission-templates': './src/main/js/apps/permission-templates/app.js',
     'project-admin': './src/main/js/apps/project-admin/app.js',
-    'project-permissions': './src/main/js/apps/permissions/project/app.js',
     'projects-admin': './src/main/js/apps/projects-admin/app.js',
     'settings': './src/main/js/apps/settings/app.js',
     'source-viewer': './src/main/js/apps/source-viewer/app.js',
     'system': './src/main/js/apps/system/app.js',
-    'update-center': './src/main/js/apps/update-center/app.js',
-    'users': './src/main/js/apps/users/app.js'
+    'update-center': './src/main/js/apps/update-center/app.js'
   },
   output: {
     path: paths.appBuild,

@@ -29,10 +29,12 @@ import codeRoutes from '../apps/code/routes';
 import codingRulesRoutes from '../apps/coding-rules/routes';
 import componentIssuesRoutes from '../apps/component-issues/routes';
 import customMeasuresRoutes from '../apps/custom-measures/routes';
+import groupsRoutes from '../apps/groups/routes';
 import issuesRoutes from '../apps/issues/routes';
 import projectsRoutes from '../apps/projects/routes';
 import qualityGatesRoutes from '../apps/quality-gates/routes';
 import qualityProfilesRoutes from '../apps/quality-profiles/routes';
+import usersRoutes from '../apps/users/routes';
 import webAPIRoutes from '../apps/web-api/routes';
 import configureStore from '../components/store/configureStore';
 import rootReducer from './store/rootReducer';
@@ -53,7 +55,9 @@ window.sonarqube.appStarted.then(options => {
           <Route path="/" component={App}>
             <Route path="account">{accountRoutes}</Route>
             <Route path="coding_rules">{codingRulesRoutes}</Route>
+            <Route path="groups">{groupsRoutes}</Route>
             <Route path="issues">{issuesRoutes}</Route>
+            <Route path="users">{usersRoutes}</Route>
             <Route path="web_api">{webAPIRoutes}</Route>
 
             <Route component={ComponentContainer}>
