@@ -26,7 +26,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -51,7 +50,7 @@ import org.sonar.db.component.ComponentDto;
 import org.sonar.db.component.ComponentTreeQuery;
 import org.sonar.db.component.SnapshotDto;
 import org.sonar.db.measure.MeasureDto;
-import org.sonar.db.measure.MeasureQuery;
+import org.sonar.db.measure.MeasureTreeQuery;
 import org.sonar.db.metric.MetricDto;
 import org.sonar.db.metric.MetricDtoFunctions;
 import org.sonar.server.component.ComponentFinder;
@@ -63,21 +62,15 @@ import org.sonarqube.ws.client.measure.ComponentTreeWsRequest;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static org.sonar.api.utils.Paging.offset;
 import static org.sonar.server.component.ComponentFinder.ParamNames.BASE_COMPONENT_ID_AND_KEY;
 import static org.sonar.server.component.ComponentFinder.ParamNames.DEVELOPER_ID_AND_KEY;
-import static org.sonar.server.measure.ws.ComponentTreeAction.ALL_STRATEGY;
-import static org.sonar.server.measure.ws.ComponentTreeAction.CHILDREN_STRATEGY;
 import static org.sonar.server.measure.ws.ComponentTreeAction.LEAVES_STRATEGY;
-import static org.sonar.server.measure.ws.ComponentTreeAction.METRIC_PERIOD_SORT;
-import static org.sonar.server.measure.ws.ComponentTreeAction.METRIC_SORT;
-import static org.sonar.server.measure.ws.ComponentTreeAction.NAME_SORT;
+import static org.sonar.server.measure.ws.ComponentTreeAction.STRATEGIES;
 import static org.sonar.server.measure.ws.ComponentTreeAction.WITH_MEASURES_ONLY_METRIC_SORT_FILTER;
 import static org.sonar.server.measure.ws.SnapshotDtoToWsPeriods.snapshotToWsPeriods;
 import static org.sonar.server.user.AbstractUserSession.insufficientPrivilegesException;
@@ -110,17 +103,16 @@ public class ComponentTreeDataLoader {
       }
       Long developerId = searchDeveloperId(dbSession, wsRequest);
 
-      ComponentTreeQuery dbQuery = toComponentTreeQuery(wsRequest, baseComponent);
-      ComponentDtosAndTotal componentDtosAndTotal = searchComponents(dbSession, dbQuery, wsRequest);
-      List<ComponentDto> components = componentDtosAndTotal.componentDtos;
+      ComponentTreeQuery componentTreeQuery = toComponentTreeQuery(wsRequest, baseComponent);
+      List<ComponentDto> components = searchComponents(dbSession, componentTreeQuery);
       List<MetricDto> metrics = searchMetrics(dbSession, wsRequest);
       List<WsMeasures.Period> periods = snapshotToWsPeriods(baseSnapshot.get());
-      Table<String, MetricDto, MeasureDto> measuresByComponentUuidAndMetric = searchMeasuresByComponentUuidAndMetric(dbSession, baseComponent, components, metrics,
-        periods, developerId);
+      Table<String, MetricDto, MeasureDto> measuresByComponentUuidAndMetric = searchMeasuresByComponentUuidAndMetric(dbSession, baseComponent, componentTreeQuery, components,
+        metrics, periods, developerId);
 
       components = filterComponents(components, measuresByComponentUuidAndMetric, metrics, wsRequest);
+      int componentCount = components.size();
       components = sortComponents(components, wsRequest, metrics, measuresByComponentUuidAndMetric);
-      int componentCount = computeComponentCount(componentDtosAndTotal.total, components, componentWithMeasuresOnly(wsRequest));
       components = paginateComponents(components, wsRequest);
       Map<String, ComponentDto> referenceComponentsById = searchReferenceComponentsById(dbSession, components);
 
@@ -136,10 +128,6 @@ public class ComponentTreeDataLoader {
     } finally {
       dbClient.closeSession(dbSession);
     }
-  }
-
-  private static int computeComponentCount(int dbComponentCount, List<ComponentDto> components, boolean returnOnlyComponentsWithMeasures) {
-    return returnOnlyComponentsWithMeasures ? components.size() : dbComponentCount;
   }
 
   @CheckForNull
@@ -164,24 +152,11 @@ public class ComponentTreeDataLoader {
       .uniqueIndex(ComponentDto::uuid);
   }
 
-  private ComponentDtosAndTotal searchComponents(DbSession dbSession, ComponentTreeQuery dbQuery, ComponentTreeWsRequest wsRequest) {
-    if (dbQuery.getQualifiers() != null && dbQuery.getQualifiers().isEmpty()) {
-      return new ComponentDtosAndTotal(Collections.emptyList(), 0);
+  private List<ComponentDto> searchComponents(DbSession dbSession, ComponentTreeQuery componentTreeQuery) {
+    if (componentTreeQuery.getQualifiers() != null && componentTreeQuery.getQualifiers().isEmpty()) {
+      return Collections.emptyList();
     }
-    String strategy = requireNonNull(wsRequest.getStrategy());
-    switch (strategy) {
-      case CHILDREN_STRATEGY:
-        return new ComponentDtosAndTotal(
-          dbClient.componentDao().selectDescendants(dbSession, dbQuery),
-          0);
-      case LEAVES_STRATEGY:
-      case ALL_STRATEGY:
-        return new ComponentDtosAndTotal(
-          dbClient.componentDao().selectDescendants(dbSession, dbQuery),
-          0);
-      default:
-        throw new IllegalStateException("Unknown component tree strategy");
-    }
+    return dbClient.componentDao().selectDescendants(dbSession, componentTreeQuery);
   }
 
   private List<MetricDto> searchMetrics(DbSession dbSession, ComponentTreeWsRequest request) {
@@ -199,20 +174,15 @@ public class ComponentTreeDataLoader {
     return metrics;
   }
 
-  private Table<String, MetricDto, MeasureDto> searchMeasuresByComponentUuidAndMetric(DbSession dbSession, ComponentDto baseComponent,
-    List<ComponentDto> components, List<MetricDto> metrics,
-    List<WsMeasures.Period> periods, @Nullable Long developerId) {
-    List<String> componentUuids = new ArrayList<>();
-    componentUuids.add(baseComponent.uuid());
-    components.stream().forEach(c -> componentUuids.add(c.uuid()));
+  private Table<String, MetricDto, MeasureDto> searchMeasuresByComponentUuidAndMetric(DbSession dbSession, ComponentDto baseComponent, ComponentTreeQuery componentTreeQuery,
+                                                                                      List<ComponentDto> components, List<MetricDto> metrics, List<WsMeasures.Period> periods, @Nullable Long developerId) {
 
     Map<Integer, MetricDto> metricsById = Maps.uniqueIndex(metrics, MetricDtoFunctions.toId());
-    MeasureQuery measureQuery = MeasureQuery.builder()
+    MeasureTreeQuery measureQuery = MeasureTreeQuery.builder()
       .setPersonId(developerId)
-      .setComponentUuids(baseComponent.projectUuid(), componentUuids)
       .setMetricIds(new ArrayList<>(metricsById.keySet()))
       .build();
-    List<MeasureDto> measureDtos = dbClient.measureDao().selectByQuery(dbSession, measureQuery);
+    List<MeasureDto> measureDtos = dbClient.measureDao().selectTreeByQuery(dbSession, baseComponent, measureQuery, componentTreeQuery);
 
     Table<String, MetricDto, MeasureDto> measuresByComponentUuidAndMetric = HashBasedTable.create(components.size(), metrics.size());
     for (MeasureDto measureDto : measureDtos) {
@@ -235,7 +205,7 @@ public class ComponentTreeDataLoader {
    * </ul>
    */
   private static void addBestValuesToMeasures(Table<String, MetricDto, MeasureDto> measuresByComponentUuidAndMetric, List<ComponentDto> components,
-    List<MetricDto> metrics, List<WsMeasures.Period> periods) {
+                                              List<MetricDto> metrics, List<WsMeasures.Period> periods) {
     List<MetricDtoWithBestValue> metricDtosWithBestValueMeasure = from(metrics)
       .filter(MetricDtoFunctions.isOptimizedForBestValue())
       .transform(new MetricDtoToMetricDtoWithBestValue(periods))
@@ -255,7 +225,7 @@ public class ComponentTreeDataLoader {
   }
 
   private static List<ComponentDto> filterComponents(List<ComponentDto> components,
-    Table<String, MetricDto, MeasureDto> measuresByComponentUuidAndMetric, List<MetricDto> metrics, ComponentTreeWsRequest wsRequest) {
+                                                     Table<String, MetricDto, MeasureDto> measuresByComponentUuidAndMetric, List<MetricDto> metrics, ComponentTreeWsRequest wsRequest) {
     if (!componentWithMeasuresOnly(wsRequest)) {
       return components;
     }
@@ -275,28 +245,15 @@ public class ComponentTreeDataLoader {
   }
 
   private static List<ComponentDto> sortComponents(List<ComponentDto> components, ComponentTreeWsRequest wsRequest, List<MetricDto> metrics,
-    Table<String, MetricDto, MeasureDto> measuresByComponentUuidAndMetric) {
-    if (!isSortByMetric(wsRequest)) {
-      return components;
-    }
-
+                                                   Table<String, MetricDto, MeasureDto> measuresByComponentUuidAndMetric) {
     return ComponentTreeSort.sortComponents(components, wsRequest, metrics, measuresByComponentUuidAndMetric);
   }
 
   private static List<ComponentDto> paginateComponents(List<ComponentDto> components, ComponentTreeWsRequest wsRequest) {
-    if (!isSortByMetric(wsRequest)) {
-      return components;
-    }
-
     return from(components)
       .skip(offset(wsRequest.getPage(), wsRequest.getPageSize()))
       .limit(wsRequest.getPageSize())
       .toList();
-  }
-
-  private static boolean isSortByMetric(ComponentTreeWsRequest wsRequest) {
-    requireNonNull(wsRequest.getSort());
-    return wsRequest.getSort().contains(METRIC_SORT) || wsRequest.getSort().contains(METRIC_PERIOD_SORT);
   }
 
   @CheckForNull
@@ -323,29 +280,17 @@ public class ComponentTreeDataLoader {
   private ComponentTreeQuery toComponentTreeQuery(ComponentTreeWsRequest wsRequest, ComponentDto baseComponent) {
     List<String> childrenQualifiers = childrenQualifiers(wsRequest, baseComponent.qualifier());
 
-    List<String> sortsWithoutMetricSort = newArrayList(Iterables.filter(wsRequest.getSort(), IsNotMetricSort.INSTANCE));
-    sortsWithoutMetricSort = sortsWithoutMetricSort.isEmpty() ? singletonList(NAME_SORT) : sortsWithoutMetricSort;
-
-    ComponentTreeQuery.Builder dbQuery = ComponentTreeQuery.builder()
+    ComponentTreeQuery.Builder componentTreeQueryBuilder = ComponentTreeQuery.builder()
       .setBaseUuid(baseComponent.uuid())
-      .setPage(wsRequest.getPage())
-      .setPageSize(wsRequest.getPageSize())
-      .setSortFields(sortsWithoutMetricSort)
-      .setAsc(wsRequest.getAsc());
+      .setStrategy(STRATEGIES.get(wsRequest.getStrategy()));
 
     if (wsRequest.getQuery() != null) {
-      dbQuery.setNameOrKeyQuery(wsRequest.getQuery());
+      componentTreeQueryBuilder.setNameOrKeyQuery(wsRequest.getQuery());
     }
     if (childrenQualifiers != null) {
-      dbQuery.setQualifiers(childrenQualifiers);
+      componentTreeQueryBuilder.setQualifiers(childrenQualifiers);
     }
-    // load all components if we must sort by metric value
-    if (isSortByMetric(wsRequest)) {
-      dbQuery.setPage(1);
-      dbQuery.setPageSize(Integer.MAX_VALUE);
-    }
-
-    return dbQuery.build();
+    return componentTreeQueryBuilder.build();
   }
 
   private void checkPermissions(ComponentDto baseComponent) {
@@ -353,16 +298,6 @@ public class ComponentTreeDataLoader {
     if (!userSession.hasComponentUuidPermission(UserRole.ADMIN, projectUuid) &&
       !userSession.hasComponentUuidPermission(UserRole.USER, projectUuid)) {
       throw insufficientPrivilegesException();
-    }
-  }
-
-  private static class ComponentDtosAndTotal {
-    private final List<ComponentDto> componentDtos;
-    private final int total;
-
-    private ComponentDtosAndTotal(List<ComponentDto> componentDtos, int total) {
-      this.componentDtos = componentDtos;
-      this.total = total;
     }
   }
 
@@ -394,15 +329,6 @@ public class ComponentTreeDataLoader {
     @Override
     public Integer apply(@Nonnull WsMeasures.Period input) {
       return input.getIndex();
-    }
-  }
-
-  private enum IsNotMetricSort implements Predicate<String> {
-    INSTANCE;
-
-    @Override
-    public boolean apply(@Nonnull String input) {
-      return !input.equals(METRIC_SORT) && !input.equals(METRIC_PERIOD_SORT);
     }
   }
 
