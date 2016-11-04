@@ -23,20 +23,24 @@ import java.util.Collection;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.session.ResultHandler;
+import org.sonar.db.component.ComponentTreeQuery;
 
 public interface MeasureMapper {
 
-  List<MeasureDto> selectByQueryOnProjects(@Param("query") MeasureQuery query);
+  List<MeasureDto> selectByQueryOnProjects(@Param("measureQuery") MeasureQuery query);
 
-  List<MeasureDto> selectByQueryOnComponents(@Param("query") MeasureQuery query);
+  List<MeasureDto> selectByQueryOnComponents(@Param("measureQuery") MeasureQuery query);
 
-  List<MeasureDto> selectByQueryOnSingleComponent(@Param("query") MeasureQuery query);
+  List<MeasureDto> selectByQueryOnSingleComponent(@Param("measureQuery") MeasureQuery query);
 
-  void selectByQueryOnProjects(@Param("query") MeasureQuery query, ResultHandler resultHandler);
+  void selectByQueryOnProjects(@Param("measureQuery") MeasureQuery query, ResultHandler resultHandler);
 
-  void selectByQueryOnComponents(@Param("query") MeasureQuery query, ResultHandler resultHandler);
+  void selectByQueryOnComponents(@Param("measureQuery") MeasureQuery query, ResultHandler resultHandler);
 
-  void selectByQueryOnSingleComponent(@Param("query") MeasureQuery query, ResultHandler resultHandler);
+  void selectByQueryOnSingleComponent(@Param("measureQuery") MeasureQuery query, ResultHandler resultHandler);
+
+  List<MeasureDto> selectTreeByQuery(@Param("measureQuery") MeasureTreeQuery measureQuery, @Param("query") ComponentTreeQuery componentTreeQuery,
+    @Param("baseUuidPath") String baseUuidPath);
 
   List<PastMeasureDto> selectPastMeasures(@Param("componentUuid") String componentUuid, @Param("analysisUuid") String analysisUuid, @Param("metricIds") List<Integer> metricIds);
 

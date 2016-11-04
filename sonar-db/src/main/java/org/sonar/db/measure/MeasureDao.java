@@ -28,6 +28,8 @@ import java.util.Optional;
 import org.apache.ibatis.session.ResultHandler;
 import org.sonar.db.Dao;
 import org.sonar.db.DbSession;
+import org.sonar.db.component.ComponentDto;
+import org.sonar.db.component.ComponentTreeQuery;
 
 import static org.sonar.db.DatabaseUtils.executeLargeInputs;
 import static org.sonar.db.DatabaseUtils.executeLargeInputsWithoutOutput;
@@ -101,6 +103,13 @@ public class MeasureDao implements Dao {
         });
     }
     mapper(dbSession).selectByQueryOnSingleComponent(query, resultHandler);
+  }
+
+  public List<MeasureDto> selectTreeByQuery(DbSession dbSession, ComponentDto baseComponent, MeasureTreeQuery measureQuery, ComponentTreeQuery componentTreeQuery) {
+    if (measureQuery.returnsEmpty()) {
+      return Collections.emptyList();
+    }
+    return mapper(dbSession).selectTreeByQuery(measureQuery, componentTreeQuery, componentTreeQuery.getUuidPath(baseComponent));
   }
 
   public List<PastMeasureDto> selectPastMeasures(DbSession dbSession,

@@ -32,7 +32,7 @@
     <include refid="selectByQueryCommonFilters"/>
     and analysis.component_uuid=pm.component_uuid
     and analysis.component_uuid in
-    <foreach item="projectUuid" collection="query.getProjectUuids()" open="(" separator="," close=")">
+    <foreach item="projectUuid" collection="measureQuery.getProjectUuids()" open="(" separator="," close=")">
       #{projectUuid}
     </foreach>
   </select>
@@ -42,9 +42,9 @@
     <include refid="selectByQueryCommonJoins"/>
     where
     <include refid="selectByQueryCommonFilters"/>
-    and analysis.component_uuid=#{query.projectUuid}
+    and analysis.component_uuid=#{measureQuery.projectUuid}
     and pm.component_uuid in
-    <foreach item="componentUuid" collection="query.getComponentUuids()" open="(" separator="," close=")">
+    <foreach item="componentUuid" collection="measureQuery.getComponentUuids()" open="(" separator="," close=")">
       #{componentUuid}
     </foreach>
   </select>
@@ -56,42 +56,62 @@
       and p.uuid=pm.component_uuid
     where
     <include refid="selectByQueryCommonFilters"/>
-    and pm.component_uuid=#{query.componentUuid}
+    and pm.component_uuid=#{measureQuery.componentUuid}
   </select>
 
   <sql id="selectByQueryCommonJoins">
     inner join snapshots analysis on analysis.uuid = pm.analysis_uuid
-    <if test="query.getMetricKeys() != null">
+    <if test="measureQuery.getMetricKeys() != null">
       inner join metrics m on m.id = pm.metric_id
     </if>
   </sql>
 
   <sql id="selectByQueryCommonFilters">
-    <if test="query.getAnalysisUuid() == null">
+    <if test="measureQuery.getAnalysisUuid() == null">
       analysis.islast=${_true}
     </if>
-    <if test="query.getAnalysisUuid() != null">
-      analysis.uuid = #{query.analysisUuid}
+    <if test="measureQuery.getAnalysisUuid() != null">
+      analysis.uuid = #{measureQuery.analysisUuid}
     </if>
-    <if test="query.getMetricIds() != null">
+    <if test="measureQuery.getMetricIds() != null">
       and pm.metric_id in
-      <foreach item="metricId" collection="query.getMetricIds()" open="(" separator="," close=")">#{metricId}</foreach>
+      <foreach item="metricId" collection="measureQuery.getMetricIds()" open="(" separator="," close=")">#{metricId}</foreach>
     </if>
-    <if test="query.getMetricKeys() != null">
+    <if test="measureQuery.getMetricKeys() != null">
       and m.name in
-      <foreach item="metricKey" collection="query.getMetricKeys()" open="(" separator="," close=")">
+      <foreach item="metricKey" collection="measureQuery.getMetricKeys()" open="(" separator="," close=")">
         #{metricKey}
       </foreach>
     </if>
     <choose>
-      <when test="query.getPersonId() != null">
-        and person_id = #{query.personId}
+      <when test="measureQuery.getPersonId() != null">
+        and pm.person_id = #{measureQuery.personId}
       </when>
       <otherwise>
-        and person_id is null
+        and pm.person_id is null
       </otherwise>
     </choose>
   </sql>
+
+  <select id="selectTreeByQuery" parameterType="map" resultType="Measure">
+    select <include refid="measureColumns"/> from project_measures pm
+    <include refid="selectByQueryCommonJoins"/>
+    inner join projects p on p.project_uuid=analysis.component_uuid and p.uuid=pm.component_uuid
+    <include refid="org.sonar.db.component.ComponentMapper.selectDescendantsJoins"/>
+    <where>
+      <include refid="selectByQueryCommonFilters"/>
+      <include refid="org.sonar.db.component.ComponentMapper.selectDescendantsFilters"/>
+    </where>
+    -- Add measures of base component
+    union
+    select <include refid="measureColumns"/> from project_measures pm
+    <include refid="selectByQueryCommonJoins"/>
+    inner join projects p on p.project_uuid=analysis.component_uuid and p.uuid=pm.component_uuid and pm.component_uuid=#{query.baseUuid}
+    <where>
+      <include refid="selectByQueryCommonFilters"/>
+      <include refid="org.sonar.db.component.ComponentMapper.selectDescendantsFilters"/>
+    </where>
+  </select>
 
   <select id="selectPastMeasures" parameterType="map" resultType="org.sonar.db.measure.PastMeasureDto">
     select pm.id as id, pm.metric_id as metricId, pm.person_id as personId, pm.value as value

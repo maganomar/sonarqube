@@ -53,12 +53,4 @@ public class ComponentTreeQueryTest {
       .build();
   }
 
-  @Test
-  public void fail_if_no_sort() {
-    expectedException.expect(NullPointerException.class);
-
-    ComponentTreeQuery.builder()
-      .setBaseUuid(AN_UUID)
-      .build();
-  }
 }
