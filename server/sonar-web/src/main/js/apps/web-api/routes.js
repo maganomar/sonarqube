@@ -18,24 +18,10 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 import React from 'react';
-import { render } from 'react-dom';
-import { Router, Route, Redirect, useRouterHistory } from 'react-router';
-import { createHistory } from 'history';
-
+import { IndexRoute, Route } from 'react-router';
 import WebApiApp from './components/WebApiApp';
-import './styles/web-api.css';
 
-window.sonarqube.appStarted.then(options => {
-  const el = document.querySelector(options.el);
-
-  const history = useRouterHistory(createHistory)({
-    basename: window.sonarqube.urlRoot
-  });
-
-  render((
-      <Router history={history}>
-        <Redirect from="/index" to="/"/>
-        <Route path="/**" component={WebApiApp}/>
-      </Router>
-  ), el);
-});
+export default [
+  <IndexRoute key="index" component={WebApiApp}/>,
+  <Route key="splat" path="**" component={WebApiApp}/>
+];

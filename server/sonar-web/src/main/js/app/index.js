@@ -29,6 +29,7 @@ import issuesRoutes from '../apps/issues/routes';
 import projectsRoutes from '../apps/projects/routes';
 import qualityGatesRoutes from '../apps/quality-gates/routes';
 import qualityProfilesRoutes from '../apps/quality-profiles/routes';
+import webAPIRoutes from '../apps/web-api/routes';
 import configureStore from '../components/store/configureStore';
 import rootReducer from './store/rootReducer';
 import './styles/index';
@@ -49,6 +50,7 @@ window.sonarqube.appStarted.then(options => {
             <Route path="account">{accountRoutes}</Route>
             <Route path="coding_rules">{codingRulesRoutes}</Route>
             <Route path="issues">{issuesRoutes}</Route>
+            <Route path="web_api">{webAPIRoutes}</Route>
             {projectsRoutes}
             {qualityGatesRoutes}
             {qualityProfilesRoutes}
