@@ -23,34 +23,57 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static java.util.Collections.singletonList;
+import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.sonar.db.component.ComponentTreeQuery.Strategy.CHILDREN;
 
 public class ComponentTreeQueryTest {
 
-  private static final String AN_UUID = "u1";
-
+  private static final String BASE_UUID = "ABCD";
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
   @Test
-  public void convert_sorts_in_sql_representation() {
-    ComponentTreeQuery result = ComponentTreeQuery.builder()
-      .setBaseUuid(AN_UUID)
-      .setSortFields(newArrayList("name", "path", "qualifier"))
+  public void create_query() throws Exception {
+    ComponentTreeQuery query = ComponentTreeQuery.builder()
+      .setBaseUuid(BASE_UUID)
+      .setStrategy(CHILDREN)
+      .setQualifiers(asList("FIL", "DIR"))
+      .setNameOrKeyQuery("teSt")
       .build();
 
-    assertThat(result.getSqlSort()).isEqualTo("LOWER(p.name) ASC, p.name ASC, LOWER(p.path) ASC, p.path ASC, LOWER(p.qualifier) ASC, p.qualifier ASC");
+    assertThat(query.getBaseUuid()).isEqualTo(BASE_UUID);
+    assertThat(query.getStrategy()).isEqualTo(CHILDREN);
+    assertThat(query.getQualifiers()).containsOnly("FIL", "DIR");
+    assertThat(query.getNameOrKeyQuery()).isEqualTo("teSt");
   }
 
   @Test
-  public void fail_if_no_base_uuid() {
-    expectedException.expect(NullPointerException.class);
+  public void create_minimal_query() throws Exception {
+    ComponentTreeQuery query = ComponentTreeQuery.builder()
+      .setBaseUuid(BASE_UUID)
+      .setStrategy(CHILDREN)
+      .build();
 
+    assertThat(query.getBaseUuid()).isEqualTo(BASE_UUID);
+    assertThat(query.getStrategy()).isEqualTo(CHILDREN);
+    assertThat(query.getQualifiers()).isNull();
+    assertThat(query.getNameOrKeyQuery()).isNull();
+  }
+
+  @Test
+  public void fail_when_no_base_uuid() throws Exception {
+    expectedException.expect(NullPointerException.class);
     ComponentTreeQuery.builder()
-      .setSortFields(singletonList("name"))
+      .setStrategy(CHILDREN)
       .build();
   }
 
+  @Test
+  public void fail_when_no_strategy() throws Exception {
+    expectedException.expect(NullPointerException.class);
+    ComponentTreeQuery.builder()
+      .setBaseUuid(BASE_UUID)
+      .build();
+  }
 }
