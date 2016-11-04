@@ -23,7 +23,9 @@ import { Router, Route, useRouterHistory } from 'react-router';
 import { createHistory } from 'history';
 import { Provider } from 'react-redux';
 import App from './components/App';
+import ComponentContainer from './components/ComponentContainer';
 import accountRoutes from '../apps/account/routes';
+import codeRoutes from '../apps/code/routes';
 import codingRulesRoutes from '../apps/coding-rules/routes';
 import issuesRoutes from '../apps/issues/routes';
 import projectsRoutes from '../apps/projects/routes';
@@ -51,6 +53,11 @@ window.sonarqube.appStarted.then(options => {
             <Route path="coding_rules">{codingRulesRoutes}</Route>
             <Route path="issues">{issuesRoutes}</Route>
             <Route path="web_api">{webAPIRoutes}</Route>
+
+            <Route component={ComponentContainer}>
+              <Route path="code">{codeRoutes}</Route>
+            </Route>
+
             {projectsRoutes}
             {qualityGatesRoutes}
             {qualityProfilesRoutes}

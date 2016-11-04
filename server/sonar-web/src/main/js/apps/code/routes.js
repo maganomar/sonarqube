@@ -18,27 +18,9 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 import React from 'react';
-import { render } from 'react-dom';
-import { Router, Route, Redirect, useRouterHistory } from 'react-router';
-import { createHistory } from 'history';
-
+import { IndexRoute } from 'react-router';
 import App from './components/App';
 
-window.sonarqube.appStarted.then(options => {
-  const el = document.querySelector(options.el);
-
-  const history = useRouterHistory(createHistory)({
-    basename: window.baseUrl + '/code'
-  });
-
-  const AppWithComponent = (props) => {
-    return <App {...props} component={options.component}/>;
-  };
-
-  render((
-      <Router history={history}>
-        <Redirect from="/index" to="/"/>
-        <Route path="/" component={AppWithComponent}/>
-      </Router>
-  ), el);
-});
+export default (
+    <IndexRoute component={App}/>
+);
