@@ -34,6 +34,7 @@ import org.sonar.db.DbSession;
 import org.sonar.db.component.ComponentDao;
 import org.sonar.db.component.ComponentDto;
 import org.sonar.db.component.ComponentTreeQuery;
+import org.sonar.db.component.ComponentTreeQuery.Strategy;
 
 import static java.util.Collections.emptyList;
 import static org.sonar.api.utils.DateUtils.dateToLong;
@@ -112,24 +113,15 @@ public class PurgeDao implements Dao {
     List<String> componentWithoutHistoricalDataUuids = componentDao
       .selectDescendants(
         dbSession,
-        newComponentTreeQuery()
+        ComponentTreeQuery.builder()
           .setBaseUuid(rootUuid)
           .setQualifiers(Arrays.asList(scopesWithoutHistoricalData))
+          .setStrategy(Strategy.LEAVES)
           .build())
       .stream().map(ComponentDto::uuid)
       .collect(Collectors.toList());
 
     purgeCommands.deleteComponentMeasures(analysisUuids, componentWithoutHistoricalDataUuids);
-  }
-
-  /**
-   * Creates a new ComponentTreeQuery.Builder with properties that don't matter here but are mandatory populated.
-   */
-  private static ComponentTreeQuery.Builder newComponentTreeQuery() {
-    return ComponentTreeQuery.builder()
-      .setPage(1)
-      .setPageSize(Integer.MAX_VALUE)
-      .setSortFields(UUID_FIELD_SORT);
   }
 
   private void purgeDisabledComponents(DbSession session, Collection<String> uuids, PurgeListener listener) {
