@@ -29,7 +29,7 @@ module.exports = {
     'app': './src/main/js/app/index.js',
 
     'background-tasks': './src/main/js/apps/background-tasks/app.js',
-    'component-issues': './src/main/js/apps/component-issues/app.js',
+
     'component-measures': './src/main/js/apps/component-measures/app.js',
     'custom-measures': './src/main/js/apps/custom-measures/app.js',
     'dashboard': './src/main/js/apps/dashboard/app.js',

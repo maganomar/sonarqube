@@ -33,7 +33,7 @@ import WorkspaceHeaderView from '../issues/workspace-header-view';
 import FacetsView from './../issues/facets-view';
 
 const App = new Marionette.Application();
-const init = function () {
+const init = function (el) {
   const options = window.sonarqube;
 
   this.config = options.config;
@@ -49,7 +49,7 @@ const init = function () {
   this.facets = new Facets();
   this.filters = new Filters();
 
-  this.layout = new Layout({ app: this, el: options.el });
+  this.layout = new Layout({ app: this, el });
   this.layout.render();
   $('#footer').addClass('search-navigator-footer');
 
@@ -106,8 +106,10 @@ App.updateContextFacets = function () {
   });
 };
 
-App.on('start', function (options) {
-  init.call(App, options);
+App.on('start', function (el) {
+  init.call(App, el);
 });
 
-window.sonarqube.appStarted.then(options => App.start(options));
+export default function (el) {
+  App.start(el);
+}
