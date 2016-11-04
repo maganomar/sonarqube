@@ -48,9 +48,7 @@ module.exports = {
     'source-viewer': './src/main/js/apps/source-viewer/app.js',
     'system': './src/main/js/apps/system/app.js',
     'update-center': './src/main/js/apps/update-center/app.js',
-    'users': './src/main/js/apps/users/app.js',
-
-    'widgets': './src/main/js/widgets/widgets.js'
+    'users': './src/main/js/apps/users/app.js'
   },
   output: {
     path: paths.appBuild,
